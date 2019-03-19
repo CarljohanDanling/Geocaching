@@ -150,9 +150,14 @@ namespace Geocaching
 
         // Contains the location of the latest click on the map.
         // The Location object in turn contains information like longitude and latitude.
+
+        //private GeoCoordinate latestClickLocation;
+
         private Location latestClickLocation;
 
         private Location gothenburg = new Location(57.719021, 11.991202);
+
+        //private GeoCoordinate gothenburg = new GeoCoordinate(57.719021, 11.991202);
 
         public MainWindow()
         {
@@ -256,11 +261,15 @@ namespace Geocaching
                 return;
             }
 
+            string firstName = dialog.PersonFirstName;
+            string lastName = dialog.PersonLastName;
             string city = dialog.AddressCity;
             string country = dialog.AddressCountry;
             string streetName = dialog.AddressStreetName;
             int streetNumber = dialog.AddressStreetNumber;
             // Add person to map and database here.
+            AddPersonToDatabase(dialog, latestClickLocation);
+
             var pin = AddPin(latestClickLocation, "Person", Colors.Blue);
 
             pin.MouseDown += (s, a) =>
@@ -272,6 +281,27 @@ namespace Geocaching
                 // Prevent click from being triggered on map.
                 a.Handled = true;
             };
+        }
+
+        private void AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
+        {
+            Person person = new Person();
+            person.FirstName = dialog.PersonFirstName;
+            person.LastName = dialog.PersonLastName;
+            person.Address = new Address()
+            {
+                City = dialog.AddressCity,
+                StreetName = dialog.AddressStreetName,
+                StreetNumber = dialog.AddressStreetNumber,
+                Country = dialog.AddressCountry
+            };
+            person.GeoCoordinate = new Coordinate()
+            {
+                Longitude = latestClickLocation.Longitude,
+                Latitude = latestClickLocation.Latitude
+            };
+            db.Add(person);
+            db.SaveChanges();
         }
 
         private Pushpin AddPin(Location location, string tooltip, Color color)
