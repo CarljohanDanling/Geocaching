@@ -2,6 +2,7 @@
 using Microsoft.Maps.MapControl.WPF;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,73 @@ using System.Windows.Shapes;
 
 namespace Geocaching
 {
+    public class Person
+    {
+        [Key]
+        public int ID { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string FirstName { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string LastName { get; set; }
+        [Required]
+        public Coordinate Coordinate { get; set; }
+        [Required]
+        public Address Address { get; set; }
+
+        public List<FoundGeocache> FoundGeocache { get; set; }
+    }
+
+    public class Coordinate
+    {
+        [Required]
+        public double Latitude { get; set; }
+        [Required]
+        public double Longitude { get; set; }
+    }
+
+    public class Address
+    {
+        [Required]
+        [MaxLength(50)]
+        public string Country { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string City { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string StreetName { get; set; }
+        [Required]
+        public byte StreetNumber { get; set; }
+    }
+
+    public class Geocache
+    {
+        [Key]
+        public int ID { get; set; }
+        public int? PersonID { get; set; }
+        [Required]
+        public Coordinate Coordinate { get; set; }
+        [Required]
+        [MaxLength(255)]
+        public string Contents { get; set; }
+        [Required]
+        [MaxLength(255)]
+        public string Message { get; set; }
+
+        public List<FoundGeocache> FoundGeocache { get; set; }
+    }
+
+    public class FoundGeocache
+    {
+        public int PersonID { get; set; }
+        public Person Person { get; set; }
+
+        public int GeocacheID { get; set; }
+        public Geocache Geocache { get; set; }
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -39,6 +107,12 @@ namespace Geocaching
             protected override void OnConfiguring(DbContextOptionsBuilder options)
             {
                 options.UseSqlServer(@"Data Source=(local)\SQLEXPRESS;Initial Catalog=Geocaching;Integrated Security=True");
+            }
+
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+                modelBuilder.Entity<FoundGeocache>()
+                    .HasKey(fg => new { fg.PersonID, fg.GeocacheID });
             }
         }
 
