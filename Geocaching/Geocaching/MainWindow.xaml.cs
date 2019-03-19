@@ -151,13 +151,9 @@ namespace Geocaching
         // Contains the location of the latest click on the map.
         // The Location object in turn contains information like longitude and latitude.
 
-        //private GeoCoordinate latestClickLocation;
-
         private Location latestClickLocation;
 
         private Location gothenburg = new Location(57.719021, 11.991202);
-
-        //private GeoCoordinate gothenburg = new GeoCoordinate(57.719021, 11.991202);
 
         public MainWindow()
         {
@@ -237,7 +233,10 @@ namespace Geocaching
 
             string contents = dialog.GeocacheContents;
             string message = dialog.GeocacheMessage;
+
             // Add geocache to map and database here.
+            AddGeocacheToDatabase(dialog, latestClickLocation);
+
             var pin = AddPin(latestClickLocation, "Person", Colors.Gray);
 
             pin.MouseDown += (s, a) =>
@@ -249,6 +248,22 @@ namespace Geocaching
                 // Prevent click from being triggered on map.
                 a.Handled = true;
             };
+        }
+
+        private void AddGeocacheToDatabase(GeocacheDialog dialog, Location latestClickLocation)
+        {
+            Geocache geocache = new Geocache();
+            geocache.PersonID = null;
+            geocache.GeoCoordinate = new Coordinate()
+            {
+                Latitude = latestClickLocation.Latitude,
+                Longitude = latestClickLocation.Longitude
+            };
+            geocache.Contents = dialog.GeocacheContents;
+            geocache.Message = dialog.GeocacheMessage;
+
+            db.Add(geocache);
+            db.SaveChanges();
         }
 
         private void OnAddPersonClick(object sender, RoutedEventArgs args)
@@ -267,6 +282,7 @@ namespace Geocaching
             string country = dialog.AddressCountry;
             string streetName = dialog.AddressStreetName;
             int streetNumber = dialog.AddressStreetNumber;
+            
             // Add person to map and database here.
             AddPersonToDatabase(dialog, latestClickLocation);
 
