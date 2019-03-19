@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Device.Location;
 
 namespace Geocaching
 {
@@ -29,19 +30,19 @@ namespace Geocaching
         [MaxLength(50)]
         public string LastName { get; set; }
         [Required]
-        public Coordinate Coordinate { get; set; }
+        public Coordinate GeoCoordinate { get; set; }
         [Required]
         public Address Address { get; set; }
 
         public List<FoundGeocache> FoundGeocache { get; set; }
     }
 
-    public class Coordinate
+    public class Coordinate : GeoCoordinate
     {
         [Required]
-        public double Latitude { get; set; }
+        public new double Latitude { get; set; }
         [Required]
-        public double Longitude { get; set; }
+        public new double Longitude { get; set; }
     }
 
     public class Address
@@ -64,8 +65,9 @@ namespace Geocaching
         [Key]
         public int ID { get; set; }
         public int? PersonID { get; set; }
+        public Person Person { get; set; }
         [Required]
-        public Coordinate Coordinate { get; set; }
+        public Coordinate GeoCoordinate { get; set; }
         [Required]
         [MaxLength(255)]
         public string Contents { get; set; }
@@ -85,6 +87,54 @@ namespace Geocaching
         public Geocache Geocache { get; set; }
     }
 
+    class AppDbContext : DbContext
+    {
+        public DbSet<Person> Person { get; set; }
+        public DbSet<Geocache> Geocache { get; set; }
+        public DbSet<FoundGeocache> FoundGeocache { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder options)
+        {
+            options.UseSqlServer(@"Data Source=(local)\SQLEXPRESS;Initial Catalog=Geocache;Integrated Security=True");
+        }
+
+        protected override void OnModelCreating(ModelBuilder model)
+        {
+            model.Entity<FoundGeocache>()
+                .HasKey(fg => new { fg.PersonID, fg.GeocacheID });
+
+            model.Entity<Person>().OwnsOne(p => p.Address, a =>
+            {
+                a.Property(p => p.Country).HasColumnName("Country");
+                a.Property(p => p.City).HasColumnName("City");
+                a.Property(p => p.StreetName).HasColumnName("StreetName");
+                a.Property(p => p.StreetNumber).HasColumnName("StreetNumber");
+            });
+
+            model.Entity<Person>().OwnsOne(g => g.GeoCoordinate, c =>
+            {
+                c.Property(g => g.Latitude).HasColumnName("Latitude");
+                c.Property(g => g.Longitude).HasColumnName("Longitude");
+                c.Ignore(g => g.Altitude);
+                c.Ignore(g => g.Course);
+                c.Ignore(g => g.HorizontalAccuracy);
+                c.Ignore(g => g.Speed);
+                c.Ignore(g => g.VerticalAccuracy);
+            });
+
+            model.Entity<Geocache>().OwnsOne(g => g.GeoCoordinate , c =>
+            {
+                c.Property(g => g.Latitude).HasColumnName("Latitude");
+                c.Property(g => g.Longitude).HasColumnName("Longitude");
+                c.Ignore(g => g.Altitude);
+                c.Ignore(g => g.Course);
+                c.Ignore(g => g.HorizontalAccuracy);
+                c.Ignore(g => g.Speed);
+                c.Ignore(g => g.VerticalAccuracy);
+            });
+        }
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -94,6 +144,8 @@ namespace Geocaching
         // Instructions here: https://docs.microsoft.com/en-us/bingmaps/getting-started/bing-maps-dev-center-help/getting-a-bing-maps-key
         private const string applicationId = "AtY7XCl8HtaG0nheNNj7W3ryXegOUlT-CHea15PMBLkGmNF1hR6K5NJ04SZEcF0z";
 
+        private AppDbContext db = new AppDbContext();
+
         private MapLayer layer;
 
         // Contains the location of the latest click on the map.
@@ -101,20 +153,6 @@ namespace Geocaching
         private Location latestClickLocation;
 
         private Location gothenburg = new Location(57.719021, 11.991202);
-
-        class AppDbContext : DbContext
-        {
-            protected override void OnConfiguring(DbContextOptionsBuilder options)
-            {
-                options.UseSqlServer(@"Data Source=(local)\SQLEXPRESS;Initial Catalog=Geocaching;Integrated Security=True");
-            }
-
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
-            {
-                modelBuilder.Entity<FoundGeocache>()
-                    .HasKey(fg => new { fg.PersonID, fg.GeocacheID });
-            }
-        }
 
         public MainWindow()
         {
@@ -134,10 +172,10 @@ namespace Geocaching
 
             CreateMap();
 
-            using (var db = new AppDbContext())
-            {
-                // Load data from database and populate map here.
-            }
+            //using (var db = new AppDbContext())
+            //{
+            //    // Load data from database and populate map here.
+            //}
         }
 
         private void CreateMap()
