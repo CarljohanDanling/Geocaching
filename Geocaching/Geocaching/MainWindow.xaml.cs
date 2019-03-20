@@ -23,11 +23,9 @@ namespace Geocaching
     {
         [Key]
         public int ID { get; set; }
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string FirstName { get; set; }
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string LastName { get; set; }
         [Required]
         public Coordinate GeoCoordinate { get; set; }
@@ -47,14 +45,11 @@ namespace Geocaching
 
     public class Address
     {
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string Country { get; set; }
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string City { get; set; }
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string StreetName { get; set; }
         [Required]
         public byte StreetNumber { get; set; }
@@ -68,11 +63,9 @@ namespace Geocaching
         public Person Person { get; set; }
         [Required]
         public Coordinate GeoCoordinate { get; set; }
-        [Required]
-        [MaxLength(255)]
+        [Required, MaxLength(255)]
         public string Contents { get; set; }
-        [Required]
-        [MaxLength(255)]
+        [Required, MaxLength(255)]
         public string Message { get; set; }
 
         public List<FoundGeocache> FoundGeocache { get; set; }
