@@ -286,17 +286,23 @@ namespace Geocaching
             // Add person to map and database here.
             AddPersonToDatabase(dialog, latestClickLocation);
 
-            var pin = AddPin(latestClickLocation, "Person", Colors.Blue);
+            var pin = AddPin(latestClickLocation, ShowPersonOnClick(), Colors.Blue);
 
             pin.MouseDown += (s, a) =>
             {
                 // Handle click on person pin here.
-                MessageBox.Show("You clicked a person");
+                MessageBox.Show("Person");
                 UpdateMap();
 
                 // Prevent click from being triggered on map.
                 a.Handled = true;
             };
+        }
+
+        private string ShowPersonOnClick()
+        {
+            var person = db.Person.First();
+            return ($"{person.FirstName} {person.LastName}\n{person.Address.StreetName} {person.Address.StreetNumber}\n{person.Address.City}");
         }
 
         private void AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
