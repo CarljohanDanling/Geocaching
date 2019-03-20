@@ -173,10 +173,22 @@ namespace Geocaching
 
             CreateMap();
 
-            //using (var db = new AppDbContext())
-            //{
-            //    // Load data from database and populate map here.
-            //}
+            // Populate map here.
+            var persons = db.Person.ToList();
+            foreach (var person in persons)
+            {
+                AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), person.Address.City, Colors.Blue);
+            }
+        }
+
+        private Location ConvertGeoCoordinateToLocation(Coordinate geoCoordinate)
+        {
+            Location location = new Location()
+            {
+                Latitude = geoCoordinate.Latitude,
+                Longitude = geoCoordinate.Longitude
+            };
+            return location;
         }
 
         private void CreateMap()
