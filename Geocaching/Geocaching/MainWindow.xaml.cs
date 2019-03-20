@@ -122,16 +122,16 @@ namespace Geocaching
                 c.Ignore(g => g.VerticalAccuracy);
             });
 
-            model.Entity<Geocache>().OwnsOne(g => g.GeoCoordinate , c =>
-            {
-                c.Property(g => g.Latitude).HasColumnName("Latitude");
-                c.Property(g => g.Longitude).HasColumnName("Longitude");
-                c.Ignore(g => g.Altitude);
-                c.Ignore(g => g.Course);
-                c.Ignore(g => g.HorizontalAccuracy);
-                c.Ignore(g => g.Speed);
-                c.Ignore(g => g.VerticalAccuracy);
-            });
+            model.Entity<Geocache>().OwnsOne(g => g.GeoCoordinate, c =>
+           {
+               c.Property(g => g.Latitude).HasColumnName("Latitude");
+               c.Property(g => g.Longitude).HasColumnName("Longitude");
+               c.Ignore(g => g.Altitude);
+               c.Ignore(g => g.Course);
+               c.Ignore(g => g.HorizontalAccuracy);
+               c.Ignore(g => g.Speed);
+               c.Ignore(g => g.VerticalAccuracy);
+           });
         }
     }
 
@@ -177,8 +177,28 @@ namespace Geocaching
             var persons = db.Person.ToList();
             foreach (var person in persons)
             {
-                AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), person.Address.City, Colors.Blue);
+                AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), OnHooverPersonToolTip(person), Colors.Blue);
             }
+
+            var geocaches = db.Geocache.Include(g => g.Person).Where(g => g.Person.ID == g.PersonID).ToList();
+            foreach (var geocache in geocaches)
+            {
+                AddPin(ConvertGeoCoordinateToLocation(geocache.GeoCoordinate), OnHooverGeocacheToolTip(geocache), Colors.Gray);
+            }
+        }
+
+        private string OnHooverPersonToolTip(Person person)
+        {
+            return ($"{person.FirstName} {person.LastName}\n{person.Address.StreetName} {person.Address.StreetNumber}\n{person.Address.City}");
+        }
+
+        private string OnHooverGeocacheToolTip(Geocache geocache)
+        {
+            return ($"Latitude: {geocache.GeoCoordinate.Latitude}\n" +
+                    $"Longitude: {geocache.GeoCoordinate.Longitude}\n" +
+                    $"Message: {geocache.Message}\n" +
+                    $"Content: {geocache.Contents}\n" +
+                    $"Person placed geocache: {geocache.Person.FirstName} {geocache.Person.LastName}");
         }
 
         private Location ConvertGeoCoordinateToLocation(Coordinate geoCoordinate)
@@ -294,11 +314,11 @@ namespace Geocaching
             string country = dialog.AddressCountry;
             string streetName = dialog.AddressStreetName;
             int streetNumber = dialog.AddressStreetNumber;
-            
-            // Add person to map and database here.
-            AddPersonToDatabase(dialog, latestClickLocation);
 
-            var pin = AddPin(latestClickLocation, ShowPersonOnClick(), Colors.Blue);
+            // Add person to map and database here.
+            int personID = AddPersonToDatabase(dialog, latestClickLocation);
+
+            var pin = AddPin(latestClickLocation, ShowPersonOnClick(personID), Colors.Blue);
 
             pin.MouseDown += (s, a) =>
             {
@@ -311,13 +331,13 @@ namespace Geocaching
             };
         }
 
-        private string ShowPersonOnClick()
+        private string ShowPersonOnClick(int personID)
         {
-            var person = db.Person.First();
+            var person = db.Person.FirstOrDefault(p => p.ID == personID);
             return ($"{person.FirstName} {person.LastName}\n{person.Address.StreetName} {person.Address.StreetNumber}\n{person.Address.City}");
         }
 
-        private void AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
+        private int AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
         {
             Person person = new Person();
             person.FirstName = dialog.PersonFirstName;
@@ -336,6 +356,7 @@ namespace Geocaching
             };
             db.Add(person);
             db.SaveChanges();
+            return person.ID;
         }
 
         private Pushpin AddPin(Location location, string tooltip, Color color)
