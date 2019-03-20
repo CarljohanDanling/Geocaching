@@ -194,11 +194,21 @@ namespace Geocaching
 
         private string OnHooverGeocacheToolTip(Geocache geocache)
         {
-            return ($"Latitude: {geocache.GeoCoordinate.Latitude}\n" +
+            if (geocache.Person == null)
+            {
+                return ($"Latitude: {geocache.GeoCoordinate.Latitude}\n" +
+                    $"Longitude: {geocache.GeoCoordinate.Longitude}\n" +
+                    $"Message: {geocache.Message}\n" +
+                    $"Content: {geocache.Contents}");
+            }
+            else
+            {
+                return ($"Latitude: {geocache.GeoCoordinate.Latitude}\n" +
                     $"Longitude: {geocache.GeoCoordinate.Longitude}\n" +
                     $"Message: {geocache.Message}\n" +
                     $"Content: {geocache.Contents}\n" +
                     $"Person placed geocache: {geocache.Person.FirstName} {geocache.Person.LastName}");
+            }
         }
 
         private Location ConvertGeoCoordinateToLocation(Coordinate geoCoordinate)
