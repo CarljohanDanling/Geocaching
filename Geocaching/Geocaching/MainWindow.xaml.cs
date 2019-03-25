@@ -31,6 +31,7 @@ namespace Geocaching
         public Coordinate GeoCoordinate { get; set; }
         [Required]
         public Address Address { get; set; }
+        public List<Geocache> Geocaches { get; set; }
 
         public List<FoundGeocache> FoundGeocache { get; set; }
     }
@@ -247,22 +248,42 @@ namespace Geocaching
                         Person person = (Person)pin.Tag;
                         if (person.ID != activePerson.ID) pin.Opacity = 0.5;
                         else pin.Opacity = 1;
+                    }
+                }
 
-                        //foreach (var item in geocaches)
-                        //{
-                        //    if (pin.Tag.GetType() == typeof(Geocache))
-                        //    {
-                        //        if
-                        //    }
-                        //}
+                foreach (var placedCache in activePerson.Geocaches)
+                {
+                    foreach (var pin in pushpins)
+                    {
+                        if (pin.Tag.GetType() == typeof(Geocache))
+                        {
+                            Geocache geocache = (Geocache)pin.Tag;
+                            if (placedCache.PersonID == geocache.PersonID)
+                            {
+                                pin.Background = new SolidColorBrush(Colors.Black);
+                            }
+                            else
+                            {
+                                pin.Background = new SolidColorBrush(Colors.Gray);
+                            }
+                        }
                     }
                 }
             }
+
             else if (activePerson == null)
             {
                 foreach (var pin in pushpins)
                 {
                     pin.Opacity = 1;
+                    if (pin.Tag.GetType() == typeof(Person))
+                    {
+                        pin.Background = new SolidColorBrush(Colors.Blue);
+                    }
+                    else
+                    {
+                        pin.Background = new SolidColorBrush(Colors.Gray);
+                    }
                 }
             }
         }
@@ -299,11 +320,11 @@ namespace Geocaching
 
                 pin.MouseDown += (s, a) =>
                 {
-                // Handle click on geocache pin here.
-                UpdateMap();
+                    // Handle click on geocache pin here.
+                    UpdateMap();
 
-                // Prevent click from being triggered on map.
-                a.Handled = true;
+                    // Prevent click from being triggered on map.
+                    a.Handled = true;
                 };
             }
         }
