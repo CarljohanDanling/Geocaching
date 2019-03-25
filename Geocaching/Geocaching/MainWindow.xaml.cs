@@ -148,7 +148,6 @@ namespace Geocaching
         private Location gothenburg = new Location(57.719021, 11.991202);
 
         Person activePerson;
-        List<Person> persons = new List<Person>();
         List<Geocache> geocaches = new List<Geocache>();
         List<Pushpin> pushpins = new List<Pushpin>();
 
@@ -171,15 +170,32 @@ namespace Geocaching
             CreateMap();
 
             // Load data from database and populate map here.
-            persons = db.Person.ToList();
-            foreach (var person in persons)
+            //persons = db.Person.Include(p => p.GeoCoordinate).ToList();
+            geocaches = db.Geocache.Include(g => g.FoundGeocache).Include(p => p.Person).ToList();
+
+            foreach (var person in db.Person)
             {
-                var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person.ID);
+                var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
 
                 pin.MouseDown += (s, a) =>
                 {
                     // Handle click on person pin here.
-                    activePerson = persons.First(p => p.ID == person.ID);
+                    activePerson = db.Person.First(p => p.ID == person.ID);
+                    UpdateMap();
+
+                    // Prevent click from being triggered on map.
+                    a.Handled = true;
+                };
+            }
+
+            foreach (var geocache in geocaches)
+            {
+                var pin = AddPin(ConvertGeoCoordinateToLocation(geocache.GeoCoordinate), HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
+
+                pin.MouseDown += (s, a) =>
+                {
+                    // Handle click on person pin here.
+                    var clickedGeocache = db.Geocache.First(p => p.ID == geocache.ID);
                     UpdateMap();
 
                     // Prevent click from being triggered on map.
@@ -216,33 +232,39 @@ namespace Geocaching
             var addGeocacheMenuItem = new MenuItem { Header = "Add Geocache" };
             map.ContextMenu.Items.Add(addGeocacheMenuItem);
             addGeocacheMenuItem.Click += OnAddGeocacheClick;
-
         }
 
         private void UpdateMap()
         {
             // It is recommended (but optional) to use this method for setting the color and opacity of each pin after every user interaction that might change something.
             // This method should then be called once after every significant action, such as clicking on a pin, clicking on the map, or clicking a context menu option.
-
-            //if ()
-
-            /*
-            if (activePerson == null)
+            if (activePerson != null)
             {
-                
-            }
-            else if (activePerson != null)
-            {
-
-                var opacitatedPin = pushpins.Where(pp => (string)pp.Tag != activePerson.FirstName).ToList();
-                foreach (var pin in opacitatedPin)
+                foreach (var pin in pushpins)
                 {
-                    pin.Opacity = 0.5;
-                }
+                    if (pin.Tag.GetType() == typeof(Person))
+                    {
+                        Person person = (Person)pin.Tag;
+                        if (person.ID != activePerson.ID) pin.Opacity = 0.5;
+                        else pin.Opacity = 1;
 
-                var activePersonPin = pushpins.Single(pp => (string)pp.Tag == activePerson.FirstName);
-                activePersonPin.Opacity = 1.0;
-            }*/
+                        //foreach (var item in geocaches)
+                        //{
+                        //    if (pin.Tag.GetType() == typeof(Geocache))
+                        //    {
+                        //        if
+                        //    }
+                        //}
+                    }
+                }
+            }
+            else if (activePerson == null)
+            {
+                foreach (var pin in pushpins)
+                {
+                    pin.Opacity = 1;
+                }
+            }
         }
 
         private void OnMapLeftClick()
@@ -254,32 +276,39 @@ namespace Geocaching
 
         private void OnAddGeocacheClick(object sender, RoutedEventArgs args)
         {
-            var dialog = new GeocacheDialog();
-            dialog.Owner = this;
-            dialog.ShowDialog();
-            if (dialog.DialogResult == false)
+            if (activePerson == null)
             {
-                return;
+                MessageBox.Show("Please select a person before adding a geocache.");
             }
-
-            string contents = dialog.GeocacheContents;
-            string message = dialog.GeocacheMessage;
-
-            // Add geocache to map and database here.
-            int geocacheId = AddGeocacheToDatabase(dialog, latestClickLocation);
-            var pin = AddPin(latestClickLocation, geocacheId.ToString(), Colors.Gray, geocacheId);
-
-            pin.MouseDown += (s, a) =>
+            else
             {
+                var dialog = new GeocacheDialog();
+                dialog.Owner = this;
+                dialog.ShowDialog();
+                if (dialog.DialogResult == false)
+                {
+                    return;
+                }
+
+                string contents = dialog.GeocacheContents;
+                string message = dialog.GeocacheMessage;
+
+                // Add geocache to map and database here.
+                Geocache geocache = AddGeocacheToDatabase(dialog, latestClickLocation);
+                var pin = AddPin(latestClickLocation, HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
+
+                pin.MouseDown += (s, a) =>
+                {
                 // Handle click on geocache pin here.
                 UpdateMap();
 
                 // Prevent click from being triggered on map.
                 a.Handled = true;
-            };
+                };
+            }
         }
 
-        private int AddGeocacheToDatabase(GeocacheDialog dialog, Location latestClickLocation)
+        private Geocache AddGeocacheToDatabase(GeocacheDialog dialog, Location latestClickLocation)
         {
             Geocache geocache = new Geocache();
             geocache.PersonID = activePerson.ID;
@@ -293,11 +322,10 @@ namespace Geocaching
 
             db.Add(geocache);
             db.SaveChanges();
-            int geocacheId = geocache.ID;
 
             geocaches.Add(geocache);
 
-            return geocacheId;
+            return geocache;
         }
 
         private void OnAddPersonClick(object sender, RoutedEventArgs args)
@@ -318,16 +346,17 @@ namespace Geocaching
             int streetNumber = dialog.AddressStreetNumber;
 
             // Add person to map and database here.
-            int personId = AddPersonToDatabase(dialog, latestClickLocation);
+            Person person = AddPersonToDatabase(dialog, latestClickLocation);
 
             // CreatePersonObject() takes the latestClickLocation, dialog and the personId
             // and converts it to a Person object.
-            var pin = AddPin(latestClickLocation, HooverOnPersonPinShowTooltip(CreatePersonObject(latestClickLocation, dialog, personId)), Colors.Blue, personId);
+            var pin = AddPin(latestClickLocation, HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
 
             pin.MouseDown += (s, a) =>
             {
                 // Handle click on person pin here.
-                activePerson = persons.First(p => p.ID == personId);
+
+                activePerson = db.Person.First(p => p.ID == person.ID);
                 UpdateMap();
 
                 // Prevent click from being triggered on map.
@@ -335,7 +364,7 @@ namespace Geocaching
             };
         }
 
-        private int AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
+        private Person AddPersonToDatabase(PersonDialog dialog, Location latestClickLocation)
         {
             Person person = new Person();
             person.FirstName = dialog.PersonFirstName;
@@ -354,18 +383,16 @@ namespace Geocaching
             };
             db.Add(person);
             db.SaveChanges();
-            persons.Add(person);
 
-            int id = person.ID;
-            return id;
+            return person;
         }
 
-        private Pushpin AddPin(Location location, string tooltip, Color color, int id)
+        private Pushpin AddPin(Location location, string tooltip, Color color, object something)
         {
             var pin = new Pushpin();
             pin.Cursor = Cursors.Hand;
             pin.Background = new SolidColorBrush(color);
-            pin.Tag = id;
+            pin.Tag = something;
             ToolTipService.SetToolTip(pin, tooltip);
             ToolTipService.SetInitialShowDelay(pin, 0);
             layer.AddChild(pin, new Location(location.Latitude, location.Longitude));
@@ -386,6 +413,15 @@ namespace Geocaching
         private string HooverOnPersonPinShowTooltip(Person person)
         {
             return ($"{person.FirstName} {person.LastName}\n{person.Address.StreetName} {person.Address.StreetNumber}\n{person.Address.City}");
+        }
+
+        private string HooverOnGeocachePinShowToolTip(Geocache geocache)
+        {
+            return ($"Latitude: {geocache.GeoCoordinate.Latitude}\n" +
+                    $"Longitude: {geocache.GeoCoordinate.Longitude}\n" +
+                    $"Message: {geocache.Message}\n" +
+                    $"Content: {geocache.Contents}\n" +
+                    $"Person placed geocache: {geocache.Person.FirstName} {geocache.Person.LastName}");
         }
 
         // This method is connected to the manually added persons. We need it because
