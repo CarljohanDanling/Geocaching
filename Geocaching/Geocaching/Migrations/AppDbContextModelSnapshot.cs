@@ -90,7 +90,7 @@ namespace Geocaching.Migrations
             modelBuilder.Entity("Geocaching.Geocache", b =>
                 {
                     b.HasOne("Geocaching.Person", "Person")
-                        .WithMany()
+                        .WithMany("Geocaches")
                         .HasForeignKey("PersonID");
 
                     b.OwnsOne("Geocaching.Coordinate", "GeoCoordinate", b1 =>

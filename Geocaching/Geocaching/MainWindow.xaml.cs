@@ -239,6 +239,8 @@ namespace Geocaching
         {
             // It is recommended (but optional) to use this method for setting the color and opacity of each pin after every user interaction that might change something.
             // This method should then be called once after every significant action, such as clicking on a pin, clicking on the map, or clicking a context menu option.
+
+            // This code runs if a person-pin is clicked. This code fades all other person-pins.
             if (activePerson != null)
             {
                 foreach (var pin in pushpins)
@@ -251,6 +253,7 @@ namespace Geocaching
                     }
                 }
 
+                // Finds the clicked person's placed geocaches.
                 foreach (var placedCache in activePerson.Geocaches)
                 {
                     foreach (var pin in pushpins)
@@ -269,8 +272,25 @@ namespace Geocaching
                         }
                     }
                 }
+
+                // Finds the clicked person's found geocaches.
+                foreach (var foundCache in activePerson.FoundGeocache)
+                {
+                    foreach (var pin in pushpins)
+                    {
+                        if (pin.Tag.GetType() == typeof(Geocache))
+                        {
+                            Geocache geocache = (Geocache)pin.Tag;
+                            if (foundCache.GeocacheID == geocache.ID)
+                            {
+                                pin.Background = new SolidColorBrush(Colors.Green);
+                            }
+                        }
+                    }
+                }
             }
 
+            // If no person is selected, this code runs. Resets colors and opacity of all pins.
             else if (activePerson == null)
             {
                 foreach (var pin in pushpins)
