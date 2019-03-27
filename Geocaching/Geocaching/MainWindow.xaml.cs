@@ -237,6 +237,8 @@ namespace Geocaching
 
         private void UpdateMap()
         {
+            List<Pushpin> foundpins = new List<Pushpin>();
+            foundpins = pushpins.ToList();
             // It is recommended (but optional) to use this method for setting the color and opacity of each pin after every user interaction that might change something.
             // This method should then be called once after every significant action, such as clicking on a pin, clicking on the map, or clicking a context menu option.
 
@@ -264,6 +266,7 @@ namespace Geocaching
                             if (placedCache.PersonID == geocache.PersonID)
                             {
                                 pin.Background = new SolidColorBrush(Colors.Black);
+                                foundpins.Remove(pin);
                             }
                             else
                             {
@@ -273,7 +276,7 @@ namespace Geocaching
                     }
                 }
 
-                // Finds the clicked person's found geocaches.
+                // Colors the clicked person's found geocaches.
                 foreach (var foundCache in activePerson.FoundGeocache)
                 {
                     foreach (var pin in pushpins)
@@ -284,10 +287,23 @@ namespace Geocaching
                             if (foundCache.GeocacheID == geocache.ID)
                             {
                                 pin.Background = new SolidColorBrush(Colors.Green);
+                                foundpins.Remove(pin);
                             }
                         }
                     }
                 }
+                // Colors the clicked person's NOT found geocaches.
+                
+                foreach (var pin in foundpins)
+                {
+                    if (pin.Tag.GetType() == typeof(Geocache))
+                    {
+                        Geocache geocache = (Geocache)pin.Tag;
+                        pin.Background = new SolidColorBrush(Colors.Red);
+                    }
+                }
+                
+                
             }
 
             // If no person is selected, this code runs. Resets colors and opacity of all pins.
