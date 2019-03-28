@@ -197,7 +197,7 @@ namespace Geocaching
                 {
                     // Handle click on person pin here.
                     var clickedGeocache = db.Geocache.First(p => p.ID == geocache.ID);
-                    UpdateMap();
+                    ClickedGeochachePin(clickedGeocache);
 
                     // Prevent click from being triggered on map.
                     a.Handled = true;
@@ -212,6 +212,7 @@ namespace Geocaching
             map.ZoomLevel = 12;
             layer = new MapLayer();
             map.Children.Add(layer);
+            WindowState = WindowState.Maximized;
 
             MouseDown += (sender, e) =>
             {
@@ -444,6 +445,32 @@ namespace Geocaching
             return person;
         }
 
+        private void ClickedGeochachePin(Geocache geocache)
+        {
+            if(activePerson != null)
+            {
+                var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
+
+                if (ids.Contains(geocache.ID))
+                {
+                    MessageBox.Show($"Your name is {activePerson.FirstName} \n and geocache number {geocache.ID} has been found by you");
+                }
+                else
+                {
+                    MessageBox.Show($"Your name is {activePerson.FirstName} \n and geocache number {geocache.ID} has NOT been found by you");
+                    FoundGeocache foundgeocache = new FoundGeocache()
+                    {
+                        PersonID = activePerson.ID,
+                        GeocacheID = geocache.ID
+                    };
+                    db.Add(foundgeocache);
+                    db.SaveChanges();
+                }
+
+                //UpdateMap();
+            }
+
+        }
         private Pushpin AddPin(Location location, string tooltip, Color color, object something)
         {
             var pin = new Pushpin();
