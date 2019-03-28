@@ -172,7 +172,6 @@ namespace Geocaching
 
             // Load data from database and populate map here.
             //persons = db.Person.Include(p => p.GeoCoordinate).ToList();
-            geocaches = db.Geocache.Include(g => g.FoundGeocache).Include(p => p.Person).ToList();
 
             foreach (var person in db.Person)
             {
@@ -189,7 +188,7 @@ namespace Geocaching
                 };
             }
 
-            foreach (var geocache in geocaches)
+            foreach (var geocache in db.Geocache.Include(g => g.FoundGeocache).Include(p => p.Person))
             {
                 var pin = AddPin(ConvertGeoCoordinateToLocation(geocache.GeoCoordinate), HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
 
@@ -381,8 +380,6 @@ namespace Geocaching
             db.Add(geocache);
             db.SaveChanges();
 
-            geocaches.Add(geocache);
-
             return geocache;
         }
 
@@ -447,17 +444,18 @@ namespace Geocaching
 
         private void ClickedGeochachePin(Geocache geocache)
         {
-            if(activePerson != null)
+            if(activePerson != null && !activePerson.Geocaches.Contains(geocache))
             {
                 var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
 
                 if (ids.Contains(geocache.ID))
                 {
-                    MessageBox.Show($"Your name is {activePerson.FirstName} \n and geocache number {geocache.ID} has been found by you");
+                    var foundGeocacheToDelete = db.FoundGeocache.First(fg => (fg.PersonID == activePerson.ID) && (fg.GeocacheID == geocache.ID));
+                    db.Remove(foundGeocacheToDelete);
+                    db.SaveChanges();
                 }
                 else
                 {
-                    MessageBox.Show($"Your name is {activePerson.FirstName} \n and geocache number {geocache.ID} has NOT been found by you");
                     FoundGeocache foundgeocache = new FoundGeocache()
                     {
                         PersonID = activePerson.ID,
@@ -467,7 +465,7 @@ namespace Geocaching
                     db.SaveChanges();
                 }
 
-                //UpdateMap();
+                UpdateMap();
             }
 
         }
