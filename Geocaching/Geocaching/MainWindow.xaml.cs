@@ -143,13 +143,15 @@ namespace Geocaching
         private MapLayer layer;
 
         // Contains the location of the latest click on the map.
-        // The Location object in turn contains information like longitude and latitude.
-
         private Location latestClickLocation;
+
+        // The Location object in turn contains information like longitude and latitude.
         private Location gothenburg = new Location(57.719021, 11.991202);
 
+        // The clicked person-pin on the map is assigned to this person object.
         Person activePerson;
-        List<Geocache> geocaches = new List<Geocache>();
+
+        // List with all pushpins on map.
         List<Pushpin> pushpins = new List<Pushpin>();
 
         public MainWindow()
@@ -171,8 +173,6 @@ namespace Geocaching
             CreateMap();
 
             // Load data from database and populate map here.
-            //persons = db.Person.Include(p => p.GeoCoordinate).ToList();
-
             foreach (var person in db.Person)
             {
                 var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
@@ -237,8 +237,8 @@ namespace Geocaching
 
         private void UpdateMap()
         {
-            List<Pushpin> foundpins = new List<Pushpin>();
-            foundpins = pushpins.ToList();
+            List<Pushpin> notFoundPins = new List<Pushpin>();
+            notFoundPins = pushpins.ToList();
             // It is recommended (but optional) to use this method for setting the color and opacity of each pin after every user interaction that might change something.
             // This method should then be called once after every significant action, such as clicking on a pin, clicking on the map, or clicking a context menu option.
 
@@ -266,7 +266,7 @@ namespace Geocaching
                             if (placedCache.PersonID == geocache.PersonID)
                             {
                                 pin.Background = new SolidColorBrush(Colors.Black);
-                                foundpins.Remove(pin);
+                                notFoundPins.Remove(pin);
                             }
                             else
                             {
@@ -287,14 +287,14 @@ namespace Geocaching
                             if (foundCache.GeocacheID == geocache.ID)
                             {
                                 pin.Background = new SolidColorBrush(Colors.Green);
-                                foundpins.Remove(pin);
+                                notFoundPins.Remove(pin);
                             }
                         }
                     }
                 }
+
                 // Colors the clicked person's NOT found geocaches.
-                
-                foreach (var pin in foundpins)
+                foreach (var pin in notFoundPins)
                 {
                     if (pin.Tag.GetType() == typeof(Geocache))
                     {
@@ -302,24 +302,18 @@ namespace Geocaching
                         pin.Background = new SolidColorBrush(Colors.Red);
                     }
                 }
-                
-                
             }
 
             // If no person is selected, this code runs. Resets colors and opacity of all pins.
-            else if (activePerson == null)
+            else
             {
                 foreach (var pin in pushpins)
                 {
                     pin.Opacity = 1;
-                    if (pin.Tag.GetType() == typeof(Person))
-                    {
-                        pin.Background = new SolidColorBrush(Colors.Blue);
-                    }
-                    else
-                    {
+
+                    pin.Background = pin.Tag.GetType() == typeof(Person) ?
+                        pin.Background = new SolidColorBrush(Colors.Blue) :
                         pin.Background = new SolidColorBrush(Colors.Gray);
-                    }
                 }
             }
         }
@@ -403,14 +397,11 @@ namespace Geocaching
             // Add person to map and database here.
             Person person = AddPersonToDatabase(dialog, latestClickLocation);
 
-            // CreatePersonObject() takes the latestClickLocation, dialog and the personId
-            // and converts it to a Person object.
             var pin = AddPin(latestClickLocation, HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
 
             pin.MouseDown += (s, a) =>
             {
                 // Handle click on person pin here.
-
                 activePerson = db.Person.First(p => p.ID == person.ID);
                 UpdateMap();
 
@@ -444,7 +435,7 @@ namespace Geocaching
 
         private void ClickedGeochachePin(Geocache geocache)
         {
-            if(activePerson != null && !activePerson.Geocaches.Contains(geocache))
+            if (activePerson != null && !activePerson.Geocaches.Contains(geocache))
             {
                 var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
 
@@ -464,7 +455,6 @@ namespace Geocaching
                     db.Add(foundgeocache);
                     db.SaveChanges();
                 }
-
                 UpdateMap();
             }
 
@@ -504,32 +494,6 @@ namespace Geocaching
                     $"Message: {geocache.Message}\n" +
                     $"Content: {geocache.Contents}\n" +
                     $"Person placed geocache: {geocache.Person.FirstName} {geocache.Person.LastName}");
-        }
-
-        // This method is connected to the manually added persons. We need it because
-        // the method that returns tooltip string requires a Person object.
-        private Person CreatePersonObject(Location coordinates, PersonDialog dialog, int personId)
-        {
-            Person person = new Person()
-            {
-                ID = personId,
-                FirstName = dialog.PersonFirstName,
-                LastName = dialog.PersonLastName,
-            };
-            person.GeoCoordinate = new Coordinate()
-            {
-                Latitude = coordinates.Latitude,
-                Longitude = coordinates.Longitude
-            };
-            person.Address = new Address()
-            {
-                City = dialog.AddressCity,
-                Country = dialog.AddressCountry,
-                StreetName = dialog.AddressStreetName,
-                StreetNumber = dialog.AddressStreetNumber
-            };
-
-            return person;
         }
 
         private void OnLoadFromFileClick(object sender, RoutedEventArgs args)
