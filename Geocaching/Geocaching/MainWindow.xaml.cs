@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Device.Location;
+using System.IO;
 
 namespace Geocaching
 {
@@ -459,12 +460,12 @@ namespace Geocaching
             }
 
         }
-        private Pushpin AddPin(Location location, string tooltip, Color color, object something)
+        private Pushpin AddPin(Location location, string tooltip, Color color, object typeOfObject)
         {
             var pin = new Pushpin();
             pin.Cursor = Cursors.Hand;
             pin.Background = new SolidColorBrush(color);
-            pin.Tag = something;
+            pin.Tag = typeOfObject;
             ToolTipService.SetToolTip(pin, tooltip);
             ToolTipService.SetInitialShowDelay(pin, 0);
             layer.AddChild(pin, new Location(location.Latitude, location.Longitude));
@@ -509,6 +510,83 @@ namespace Geocaching
 
             string path = dialog.FileName;
             // Read the selected file here.
+            Dictionary<Person, List<int>> personFoundGeocaches = new Dictionary<Person, List<int>>();
+            Dictionary<int, Geocache> specificGeocache = new Dictionary<int, Geocache>();
+
+            string[] lines = File.ReadAllLines(path, Encoding.GetEncoding("ISO-8859-1")).ToArray();
+            int counterPersonObject = 0;
+            int emptyLineCounter = 0;
+
+            foreach (string line in lines)
+            {
+                Geocache geocache = new Geocache();
+                Person person = new Person();
+
+                if (!line.Contains("Found"))
+                {
+                    string[] values = line.Split('|').Select(v => v.Trim()).ToArray();
+
+                    if (values[0] != "" && counterPersonObject == 0)
+                    {
+                        person.FirstName = values[0];
+                        person.LastName = values[1];
+
+                        person.Address = new Address
+                        {
+                            Country = values[2],
+                            City = values[3],
+                            StreetName = values[4],
+                            StreetNumber = byte.Parse(values[5])
+                        };
+                        person.GeoCoordinate = new Coordinate
+                        {
+                            Latitude = double.Parse(values[6]),
+                            Longitude = double.Parse(values[7])
+                        };
+
+                        emptyLineCounter = 0;
+                        counterPersonObject++;
+                    }
+
+                    else if (values[0] == "")
+                    {
+                        counterPersonObject = 0;
+                        emptyLineCounter++;
+
+                        if (emptyLineCounter == 2)
+                        {
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        int geocacheNumber = int.Parse(values[0]);
+
+                        geocache.GeoCoordinate = new Coordinate
+                        {
+                            Latitude = double.Parse(values[1]),
+                            Longitude = double.Parse(values[2])
+                        };
+
+                        geocache.Contents = values[3];
+                        geocache.Message = values[4];
+
+                        specificGeocache.Add(geocacheNumber, geocache);
+                    }
+                }
+
+                else
+                {
+                    string[] geocachesFound = line.Split(':', ',').Skip(1).Select(v => v.Trim()).ToArray();
+                    List<int> geocachesId = new List<int>();
+                    foreach (var item in geocachesFound)
+                    {
+                        int geocacheId = int.Parse(item);
+                        geocachesId.Add(geocacheId);
+                    }
+                    personFoundGeocaches.Add(person, geocachesId);
+                }
+            }
         }
 
         private void OnSaveToFileClick(object sender, RoutedEventArgs args)
