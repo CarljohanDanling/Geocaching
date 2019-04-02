@@ -174,6 +174,12 @@ namespace Geocaching
             CreateMap();
 
             // Load data from database and populate map here.
+
+            if (db.Person.Count() == 0)
+            {
+                CreateMap();
+            }
+
             foreach (var person in db.Person)
             {
                 var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
@@ -521,6 +527,10 @@ namespace Geocaching
             Person person = new Person();
             Geocache geocache = new Geocache();
 
+            db.Person.RemoveRange(db.Person);
+            db.Geocache.RemoveRange(db.Geocache);
+            db.SaveChanges();
+
             foreach (string line in lines)
             {
                 if (!line.Contains("Found"))
@@ -594,6 +604,22 @@ namespace Geocaching
                     personFoundGeocaches.Add(person, geocachesId);
                 }
             }
+
+            foreach (var personObject in personFoundGeocaches.Keys)
+            {
+                foreach(int geocacheId in personFoundGeocaches[personObject])
+                {
+                    var geocacheObject = specificGeocache[geocacheId];
+                    FoundGeocache foundGeocache = new FoundGeocache
+                    {
+                        PersonID = personObject.ID,
+                        GeocacheID = geocacheObject.ID
+                    };
+                    db.Add(foundGeocache);
+                    db.SaveChanges();
+                };
+            }
+            Start();
         }
 
         private void OnSaveToFileClick(object sender, RoutedEventArgs args)
