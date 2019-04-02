@@ -509,6 +509,7 @@ namespace Geocaching
             }
 
             string path = dialog.FileName;
+
             // Read the selected file here.
             Dictionary<Person, List<int>> personFoundGeocaches = new Dictionary<Person, List<int>>();
             Dictionary<int, Geocache> specificGeocache = new Dictionary<int, Geocache>();
@@ -517,17 +518,18 @@ namespace Geocaching
             int counterPersonObject = 0;
             int emptyLineCounter = 0;
 
+            Person person = new Person();
+            Geocache geocache = new Geocache();
+
             foreach (string line in lines)
             {
-                Geocache geocache = new Geocache();
-                Person person = new Person();
-
                 if (!line.Contains("Found"))
                 {
                     string[] values = line.Split('|').Select(v => v.Trim()).ToArray();
 
                     if (values[0] != "" && counterPersonObject == 0)
                     {
+                        person = new Person();
                         person.FirstName = values[0];
                         person.LastName = values[1];
 
@@ -543,6 +545,8 @@ namespace Geocaching
                             Latitude = double.Parse(values[6]),
                             Longitude = double.Parse(values[7])
                         };
+                        db.Person.Add(person);
+                        db.SaveChanges();
 
                         emptyLineCounter = 0;
                         counterPersonObject++;
@@ -558,19 +562,22 @@ namespace Geocaching
                             return;
                         }
                     }
+
                     else
                     {
-                        int geocacheNumber = int.Parse(values[0]);
+                        geocache = new Geocache();
 
+                        int geocacheNumber = int.Parse(values[0]);
                         geocache.GeoCoordinate = new Coordinate
                         {
                             Latitude = double.Parse(values[1]),
                             Longitude = double.Parse(values[2])
                         };
-
                         geocache.Contents = values[3];
                         geocache.Message = values[4];
 
+                        db.Geocache.Add(geocache);
+                        db.SaveChanges();
                         specificGeocache.Add(geocacheNumber, geocache);
                     }
                 }
