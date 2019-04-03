@@ -585,9 +585,11 @@ namespace Geocaching
                         };
                         geocache.Contents = values[3];
                         geocache.Message = values[4];
+                        geocache.Person = person;
 
                         db.Geocache.Add(geocache);
                         db.SaveChanges();
+
                         specificGeocache.Add(geocacheNumber, geocache);
                     }
                 }
