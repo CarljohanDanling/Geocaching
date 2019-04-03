@@ -35,6 +35,15 @@ namespace Geocaching
         public List<Geocache> Geocaches { get; set; }
 
         public List<FoundGeocache> FoundGeocache { get; set; }
+
+        // Override ToString in order to format the output to SavetoFile
+        public override string ToString()
+        {
+            string output = $"{FirstName} | {LastName} | {Address.Country}" +
+                $" | {Address.City} | {Address.StreetName} | {Address.StreetNumber}" +  
+                $" | {GeoCoordinate.Latitude} | {GeoCoordinate.Longitude}";
+            return output;
+        }
     }
 
     public class Coordinate : GeoCoordinate
@@ -71,6 +80,14 @@ namespace Geocaching
         public string Message { get; set; }
 
         public List<FoundGeocache> FoundGeocache { get; set; }
+
+        // Override ToString in order to format the output to SavetoFile
+        public override string ToString()
+        {
+            string output = $"{ID} | {GeoCoordinate.Latitude}" +
+                $" | {GeoCoordinate.Longitude} | {Contents} | { Message}";
+            return output;
+        }
     }
 
     public class FoundGeocache
@@ -80,6 +97,21 @@ namespace Geocaching
 
         public int GeocacheID { get; set; }
         public Geocache Geocache { get; set; }
+
+        // Help function to format the output to SavetoFile
+        public static string CreateOutputString(FoundGeocache[] foundcaches)
+        {
+            string outputString = "Found: ";
+            for (int i = 0; i < foundcaches.Length; i++)
+            {
+                outputString += foundcaches[i].GeocacheID;
+                if (i < foundcaches.Length - 1)
+                {
+                    outputString += ", ";
+                }
+            }
+            return outputString;
+        }
     }
 
     class AppDbContext : DbContext
@@ -368,15 +400,17 @@ namespace Geocaching
 
         private Geocache AddGeocacheToDatabase(GeocacheDialog dialog, Location latestClickLocation)
         {
-            Geocache geocache = new Geocache();
-            geocache.PersonID = activePerson.ID;
-            geocache.GeoCoordinate = new Coordinate()
+            Geocache geocache = new Geocache()
             {
-                Latitude = latestClickLocation.Latitude,
-                Longitude = latestClickLocation.Longitude
+                PersonID = activePerson.ID,
+                GeoCoordinate = new Coordinate()
+                {
+                    Latitude = latestClickLocation.Latitude,
+                    Longitude = latestClickLocation.Longitude
+                },
+                Contents = dialog.GeocacheContents,
+                Message = dialog.GeocacheMessage
             };
-            geocache.Contents = dialog.GeocacheContents;
-            geocache.Message = dialog.GeocacheMessage;
 
             db.Add(geocache);
             db.SaveChanges();
@@ -638,7 +672,33 @@ namespace Geocaching
 
             string path = dialog.FileName;
             // Write to the selected file here.
-        }
 
+            List<string> fileLines = new List<string>();
+
+            Person[] persons = db.Person.OrderByDescending(p => p).ToArray();
+
+            foreach (Person person in persons)
+            {
+                fileLines.Add(person.ToString());
+
+                Geocache[] geocaches = db.Geocache.
+                            Where(g => g.PersonID == person.ID).
+                            OrderByDescending(a => a).ToArray();
+
+                foreach (var geocache in geocaches)
+                {
+                    fileLines.Add(geocache.ToString());
+                }
+
+                FoundGeocache[] personFoundGeocaches = db.FoundGeocache.
+                            Where(fg => fg.PersonID == person.ID).
+                            OrderByDescending(a => a).ToArray();
+
+                fileLines.Add(FoundGeocache.CreateOutputString(personFoundGeocaches));
+                fileLines.Add("");
+            }
+            //fileLines.RemoveAt(fileLines.Count() - 1);
+            File.WriteAllLines(path, fileLines);
+        }
     }
 }
