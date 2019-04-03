@@ -40,7 +40,7 @@ namespace Geocaching
         public override string ToString()
         {
             string output = $"{FirstName} | {LastName} | {Address.Country}" +
-                $" | {Address.City} | {Address.StreetName} | {Address.StreetNumber}" +  
+                $" | {Address.City} | {Address.StreetName} | {Address.StreetNumber}" +
                 $" | {GeoCoordinate.Latitude} | {GeoCoordinate.Longitude}";
             return output;
         }
@@ -295,38 +295,44 @@ namespace Geocaching
                 }
 
                 // Finds the clicked person's placed geocaches.
-                foreach (var placedCache in activePerson.Geocaches)
+                if (activePerson.Geocaches != null)
                 {
-                    foreach (var pin in pushpins)
+                    foreach (var placedCache in activePerson.Geocaches)
                     {
-                        if (pin.Tag.GetType() == typeof(Geocache))
+                        foreach (var pin in pushpins)
                         {
-                            Geocache geocache = (Geocache)pin.Tag;
-                            if (placedCache.PersonID == geocache.PersonID)
+                            if (pin.Tag.GetType() == typeof(Geocache))
                             {
-                                pin.Background = new SolidColorBrush(Colors.Black);
-                                notFoundPins.Remove(pin);
-                            }
-                            else
-                            {
-                                pin.Background = new SolidColorBrush(Colors.Gray);
+                                Geocache geocache = (Geocache)pin.Tag;
+                                if (placedCache.PersonID == geocache.PersonID)
+                                {
+                                    pin.Background = new SolidColorBrush(Colors.Black);
+                                    notFoundPins.Remove(pin);
+                                }
+                                else
+                                {
+                                    pin.Background = new SolidColorBrush(Colors.Gray);
+                                }
                             }
                         }
                     }
-                }
 
-                // Colors the clicked person's found geocaches.
-                foreach (var foundCache in activePerson.FoundGeocache)
+                }
+                if (activePerson.FoundGeocache != null)
                 {
-                    foreach (var pin in pushpins)
+                    // Colors the clicked person's found geocaches.
+                    foreach (var foundCache in activePerson.FoundGeocache)
                     {
-                        if (pin.Tag.GetType() == typeof(Geocache))
+                        foreach (var pin in pushpins)
                         {
-                            Geocache geocache = (Geocache)pin.Tag;
-                            if (foundCache.GeocacheID == geocache.ID)
+                            if (pin.Tag.GetType() == typeof(Geocache))
                             {
-                                pin.Background = new SolidColorBrush(Colors.Green);
-                                notFoundPins.Remove(pin);
+                                Geocache geocache = (Geocache)pin.Tag;
+                                if (foundCache.GeocacheID == geocache.ID)
+                                {
+                                    pin.Background = new SolidColorBrush(Colors.Green);
+                                    notFoundPins.Remove(pin);
+                                }
                             }
                         }
                     }
@@ -385,12 +391,13 @@ namespace Geocaching
 
                 // Add geocache to map and database here.
                 Geocache geocache = AddGeocacheToDatabase(dialog, latestClickLocation);
-                var pin = AddPin(latestClickLocation, HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
+                var pin = AddPin(latestClickLocation, HooverOnGeocachePinShowToolTip(geocache), Colors.Black, geocache);
 
                 pin.MouseDown += (s, a) =>
                 {
                     // Handle click on geocache pin here.
-                    UpdateMap();
+                    var clickedGeocache = db.Geocache.First(p => p.ID == geocache.ID);
+                    ClickedGeochachePin(clickedGeocache);
 
                     // Prevent click from being triggered on map.
                     a.Handled = true;
@@ -476,7 +483,7 @@ namespace Geocaching
 
         private void ClickedGeochachePin(Geocache geocache)
         {
-            if (activePerson != null && !activePerson.Geocaches.Contains(geocache))
+            if (activePerson != null && activePerson.Geocaches == null)
             {
                 var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
 
@@ -496,10 +503,32 @@ namespace Geocaching
                     db.Add(foundgeocache);
                     db.SaveChanges();
                 }
-                UpdateMap();
             }
 
+            else if (activePerson != null && !activePerson.Geocaches.Contains(geocache))
+            {
+                var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
+
+                if (ids.Contains(geocache.ID))
+                {
+                    var foundGeocacheToDelete = db.FoundGeocache.First(fg => (fg.PersonID == activePerson.ID) && (fg.GeocacheID == geocache.ID));
+                    db.Remove(foundGeocacheToDelete);
+                    db.SaveChanges();
+                }
+                else
+                {
+                    FoundGeocache foundgeocache = new FoundGeocache()
+                    {
+                        PersonID = activePerson.ID,
+                        GeocacheID = geocache.ID
+                    };
+                    db.Add(foundgeocache);
+                    db.SaveChanges();
+                }
+            }
+            UpdateMap();
         }
+
         private Pushpin AddPin(Location location, string tooltip, Color color, object typeOfObject)
         {
             var pin = new Pushpin();
@@ -643,7 +672,7 @@ namespace Geocaching
 
             foreach (var personObject in personFoundGeocaches.Keys)
             {
-                foreach(int geocacheId in personFoundGeocaches[personObject])
+                foreach (int geocacheId in personFoundGeocaches[personObject])
                 {
                     var geocacheObject = specificGeocache[geocacheId];
                     FoundGeocache foundGeocache = new FoundGeocache
