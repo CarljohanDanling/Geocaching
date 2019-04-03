@@ -318,9 +318,10 @@ namespace Geocaching
                     }
 
                 }
+
+                // Colors the clicked person's found geocaches.
                 if (activePerson.FoundGeocache != null)
                 {
-                    // Colors the clicked person's found geocaches.
                     foreach (var foundCache in activePerson.FoundGeocache)
                     {
                         foreach (var pin in pushpins)
@@ -483,29 +484,7 @@ namespace Geocaching
 
         private void ClickedGeochachePin(Geocache geocache)
         {
-            if (activePerson != null && activePerson.Geocaches == null)
-            {
-                var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
-
-                if (ids.Contains(geocache.ID))
-                {
-                    var foundGeocacheToDelete = db.FoundGeocache.First(fg => (fg.PersonID == activePerson.ID) && (fg.GeocacheID == geocache.ID));
-                    db.Remove(foundGeocacheToDelete);
-                    db.SaveChanges();
-                }
-                else
-                {
-                    FoundGeocache foundgeocache = new FoundGeocache()
-                    {
-                        PersonID = activePerson.ID,
-                        GeocacheID = geocache.ID
-                    };
-                    db.Add(foundgeocache);
-                    db.SaveChanges();
-                }
-            }
-
-            else if (activePerson != null && !activePerson.Geocaches.Contains(geocache))
+            if (activePerson != null && activePerson.Geocaches == null || activePerson != null && !activePerson.Geocaches.Contains(geocache))
             {
                 var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
 
