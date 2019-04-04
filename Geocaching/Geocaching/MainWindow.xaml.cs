@@ -193,25 +193,8 @@ namespace Geocaching
             Start();
         }
 
-        private void Start()
+        private void ReadPersonAndGeocacheFromDatabase()
         {
-            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-
-            if (applicationId == null)
-            {
-                MessageBox.Show("Please set the applicationId variable before running this program.");
-                Environment.Exit(0);
-            }
-
-            CreateMap();
-
-            // Load data from database and populate map here.
-
-            if (db.Person.Count() == 0)
-            {
-                CreateMap();
-            }
-
             foreach (var person in db.Person)
             {
                 var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
@@ -241,6 +224,22 @@ namespace Geocaching
                     a.Handled = true;
                 };
             }
+            UpdateMap();
+        }
+
+        private void Start()
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+            if (applicationId == null)
+            {
+                MessageBox.Show("Please set the applicationId variable before running this program.");
+                Environment.Exit(0);
+            }
+
+            // Load data from database and populate map here.
+            CreateMap();
+            ReadPersonAndGeocacheFromDatabase();
         }
 
         private void CreateMap()
@@ -316,7 +315,6 @@ namespace Geocaching
                             }
                         }
                     }
-
                 }
 
                 // Colors the clicked person's found geocaches.
@@ -486,9 +484,9 @@ namespace Geocaching
         {
             if (activePerson != null && activePerson.Geocaches == null || activePerson != null && !activePerson.Geocaches.Contains(geocache))
             {
-                var ids = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
+                var listOfIds = db.FoundGeocache.Where(fg => fg.PersonID == activePerson.ID).Select(fg => fg.GeocacheID).ToList();
 
-                if (ids.Contains(geocache.ID))
+                if (listOfIds.Contains(geocache.ID))
                 {
                     var foundGeocacheToDelete = db.FoundGeocache.First(fg => (fg.PersonID == activePerson.ID) && (fg.GeocacheID == geocache.ID));
                     db.Remove(foundGeocacheToDelete);
@@ -663,7 +661,10 @@ namespace Geocaching
                     db.SaveChanges();
                 };
             }
-            Start();
+            pushpins.Clear();
+            layer.Children.Clear();
+            activePerson = null;
+            ReadPersonAndGeocacheFromDatabase();
         }
 
         private void OnSaveToFileClick(object sender, RoutedEventArgs args)
