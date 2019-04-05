@@ -543,7 +543,7 @@ namespace Geocaching
                     $"Person placed geocache: {geocache.Person.FirstName} {geocache.Person.LastName}");
         }
 
-        private void OnLoadFromFileClick(object sender, RoutedEventArgs args)
+        private async void OnLoadFromFileClick(object sender, RoutedEventArgs args)
         {
             var dialog = new Microsoft.Win32.OpenFileDialog();
             dialog.DefaultExt = ".txt";
