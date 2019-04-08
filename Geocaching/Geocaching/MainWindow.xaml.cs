@@ -193,45 +193,53 @@ namespace Geocaching
             Start();
         }
 
-        private void ReadPersonAndGeocacheFromDatabase()
+        private async void ReadPersonFromDatabase()
         {
-            var taskReadPerson = Task.Run( () =>
+            using (var db = new AppDbContext())
             {
-                foreach (var person in db.Person)
+                await Task.Run(() =>
                 {
-                    var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
-
-                    pin.MouseDown += (s, a) =>
+                    foreach (var person in db.Person)
                     {
-                        // Handle click on person pin here.
-                        activePerson = db.Person.First(p => p.ID == person.ID);
-                        UpdateMap();
+                        var pin = AddPin(ConvertGeoCoordinateToLocation(person.GeoCoordinate), HooverOnPersonPinShowTooltip(person), Colors.Blue, person);
 
-                        // Prevent click from being triggered on map.
-                        a.Handled = true;
-                    };
-                }
-            });
+                        pin.MouseDown += (s, a) =>
+                        {
+                            // Handle click on person pin here.
+                            activePerson = db.Person.First(p => p.ID == person.ID);
+                            UpdateMap();
 
-            var taskReadGeocache = Task.Run( () =>
+                            // Prevent click from being triggered on map.
+                            a.Handled = true;
+                        };
+                    }
+                });
+            }
+            UpdateMap();
+        }
+
+        private async void ReadGeocacheFromDatabase()
+        {
+            using (var db = new AppDbContext())
             {
-                foreach (var geocache in db.Geocache.Include(g => g.FoundGeocache).Include(p => p.Person))
+                await Task.Run(() =>
                 {
-                    var pin = AddPin(ConvertGeoCoordinateToLocation(geocache.GeoCoordinate), HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
-
-                    pin.MouseDown += (s, a) =>
+                    foreach (var geocache in db.Geocache.Include(g => g.FoundGeocache).Include(p => p.Person))
                     {
-                        // Handle click on person pin here.
-                        var clickedGeocache = db.Geocache.First(p => p.ID == geocache.ID);
-                        ClickedGeochachePin(clickedGeocache);
+                        var pin = AddPin(ConvertGeoCoordinateToLocation(geocache.GeoCoordinate), HooverOnGeocachePinShowToolTip(geocache), Colors.Gray, geocache);
 
-                        // Prevent click from being triggered on map.
-                        a.Handled = true;
-                    };
-                }
-            });
+                        pin.MouseDown += (s, a) =>
+                        {
+                            // Handle click on person pin here.
+                            var clickedGeocache = db.Geocache.First(p => p.ID == geocache.ID);
+                            ClickedGeochachePin(clickedGeocache);
 
-            Task.WaitAll(taskReadPerson, taskReadGeocache);
+                            // Prevent click from being triggered on map.
+                            a.Handled = true;
+                        };
+                    }
+                });
+            }
             UpdateMap();
         }
 
@@ -247,7 +255,8 @@ namespace Geocaching
 
             // Load data from database and populate map here.
             CreateMap();
-            ReadPersonAndGeocacheFromDatabase();
+            ReadPersonFromDatabase();
+            ReadGeocacheFromDatabase();
         }
 
         private void CreateMap()
@@ -408,7 +417,7 @@ namespace Geocaching
 
                 // Add geocache to map.
                 var pin = AddPin(latestClickLocation, HooverOnGeocachePinShowToolTip(geocache), Colors.Black, geocache);
-                
+
                 // Add geocache to database.
                 await db.SaveChangesAsync();
 
@@ -665,7 +674,8 @@ namespace Geocaching
             pushpins.Clear();
             layer.Children.Clear();
             activePerson = null;
-            ReadPersonAndGeocacheFromDatabase();
+            ReadPersonFromDatabase();
+            ReadGeocacheFromDatabase();
         }
 
         private async void OnSaveToFileClick(object sender, RoutedEventArgs args)
