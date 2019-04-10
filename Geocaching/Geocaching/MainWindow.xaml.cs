@@ -182,10 +182,10 @@ namespace Geocaching
         private Location gothenburg = new Location(57.719021, 11.991202);
 
         // The clicked person-pin on the map is assigned to this person object.
-        Person activePerson;
+        private Person activePerson;
 
         // List with all pushpins on map.
-        List<Pushpin> pushpins = new List<Pushpin>();
+        private List<Pushpin> pushpins = new List<Pushpin>();
 
         public MainWindow()
         {
