@@ -182,6 +182,10 @@
     <Compile Include="Migrations\20190319133104_RemovedSpecificProperties.designer.cs">
       <DependentUpon>20190319133104_RemovedSpecificProperties.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\20190411134234_RemovedInheritanceOfGeo.cs" />
+    <Compile Include="Migrations\20190411134234_RemovedInheritanceOfGeo.designer.cs">
+      <DependentUpon>20190411134234_RemovedInheritanceOfGeo.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\AppDbContextModelSnapshot.cs" />
     <Compile Include="PersonDialog.xaml.cs">
       <DependentUpon>PersonDialog.xaml</DependentUpon>

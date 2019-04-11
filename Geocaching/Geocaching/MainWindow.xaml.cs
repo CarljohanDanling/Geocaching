@@ -29,7 +29,7 @@ namespace Geocaching
         [Required, MaxLength(50)]
         public string LastName { get; set; }
         [Required]
-        public Coordinate GeoCoordinate { get; set; }
+        public GeoCoordinate GeoCoordinate { get; set; }
         [Required]
         public Address Address { get; set; }
         public List<Geocache> Geocaches { get; set; }
@@ -44,14 +44,6 @@ namespace Geocaching
                 $" | {GeoCoordinate.Latitude} | {GeoCoordinate.Longitude}";
             return output;
         }
-    }
-
-    public class Coordinate : GeoCoordinate
-    {
-        [Required]
-        public new double Latitude { get; set; }
-        [Required]
-        public new double Longitude { get; set; }
     }
 
     public class Address
@@ -73,7 +65,7 @@ namespace Geocaching
         public int? PersonID { get; set; }
         public Person Person { get; set; }
         [Required]
-        public Coordinate GeoCoordinate { get; set; }
+        public GeoCoordinate GeoCoordinate { get; set; }
         [Required, MaxLength(255)]
         public string Contents { get; set; }
         [Required, MaxLength(255)]
@@ -427,7 +419,7 @@ namespace Geocaching
                 Geocache geocache = new Geocache
                 {
                     PersonID = activePerson.ID,
-                    GeoCoordinate = new Coordinate()
+                    GeoCoordinate = new GeoCoordinate()
                     {
                         Latitude = latestClickLocation.Latitude,
                         Longitude = latestClickLocation.Longitude
@@ -479,7 +471,7 @@ namespace Geocaching
                     StreetName = dialog.AddressStreetName,
                     StreetNumber = dialog.AddressStreetNumber
                 },
-                GeoCoordinate = new Coordinate()
+                GeoCoordinate = new GeoCoordinate()
                 {
                     Longitude = latestClickLocation.Longitude,
                     Latitude = latestClickLocation.Latitude
@@ -547,7 +539,8 @@ namespace Geocaching
             return pin;
         }
 
-        private Location ConvertGeoCoordinateToLocation(Coordinate geoCoordinate)
+        
+        private Location ConvertGeoCoordinateToLocation(GeoCoordinate geoCoordinate)
         {
             Location location = new Location()
             {
@@ -630,7 +623,7 @@ namespace Geocaching
                             StreetName = values[4],
                             StreetNumber = byte.Parse(values[5])
                         };
-                        person.GeoCoordinate = new Coordinate
+                        person.GeoCoordinate = new GeoCoordinate
                         {
                             Latitude = double.Parse(values[6]),
                             Longitude = double.Parse(values[7])
@@ -658,7 +651,7 @@ namespace Geocaching
                         geocache = new Geocache();
 
                         int geocacheNumber = int.Parse(values[0]);
-                        geocache.GeoCoordinate = new Coordinate
+                        geocache.GeoCoordinate = new GeoCoordinate
                         {
                             Latitude = double.Parse(values[1]),
                             Longitude = double.Parse(values[2])
